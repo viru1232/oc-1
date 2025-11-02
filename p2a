@@ -1,0 +1,112 @@
+#include <stdio.h> 
+#include <stdlib.h> #include <unistd.h> #include <sys/wait.h>
+
+// Function prototypes
+void bubble_sort(int arr[], int n);
+void selection_sort(int arr[], int n); 
+void print_array(int arr[], int n);
+void demonstrate_zombie();
+void demonstrate_orphan();
+
+int main() { int n, i;
+printf("Enter the number of integers to sort: ");
+scanf("%d", &n);
+
+int arr[n], arr_copy[n];
+
+printf("Enter %d integers:\n", n); 
+for(i = 0; i < n; i++) {
+scanf("%d", &arr[i]);
+arr_copy[i] = arr[i]; // Make a copy for child process
+}
+pid_t pid = fork(); if(pid < 0) {
+fprintf(stderr, "Fork failed\n"); 
+return 1;
+}
+else if(pid == 0) { // Child process
+printf("\nChild process sorting using selection sort...\n"); 
+selection_sort(arr_copy, n);
+printf("Child sorted array: ");
+print_array(arr_copy, n);
+
+// Uncomment to demonstrate orphan state
+//demonstrate_orphan();
+}
+else { // Parent process
+printf("\nParent process sorting using bubble sort...\n");
+bubble_sort(arr, n);
+printf("Parent sorted array: ");
+print_array(arr, n);
+
+// Wait for child to complete wait(NULL);
+ 
+printf("\nParent: Child process has completed.\n");
+
+// Uncomment to demonstrate zombie state demonstrate_zombie();
+}
+
+return 0;
+}
+
+// Bubble sort algorithm
+void bubble_sort(int arr[], int n) { int i, j, temp;
+for(i = 0; i < n-1; i++) {
+for(j = 0; j < n-i-1; j++) {
+if(arr[j] > arr[j+1]) { temp = arr[j]; 
+arr[j] = arr[j+1];
+arr[j+1] = temp;
+}
+}
+}
+}
+
+// Selection sort algorithm
+void selection_sort(int arr[], int n) { int i, j, min_idx, temp;
+for(i = 0; i < n-1; i++) { min_idx = i;
+for(j = i+1; j < n; j++) { if(arr[j] < arr[min_idx]) {
+min_idx = j;
+}
+}
+temp = arr[min_idx]; 
+arr[min_idx] = arr[i]; arr[i] = temp;
+}
+}
+// Utility function to print array void print_array(int arr[], int n) {
+for(int i = 0; i < n; i++) { printf("%d ", arr[i]);
+}
+printf("\n");
+}
+
+// Function to demonstrate zombie state void demonstrate_zombie() {
+printf("\nZombie state demonstration:\n");
+printf("Parent process will sleep for 20 seconds, during which time\n");
+printf("the child will terminate but parent hasn't called wait() yet.\n");
+ 
+pid_t pid = fork();
+if(pid < 0) {
+fprintf(stderr, "Fork failed\n"); exit(1);
+}
+else if(pid == 0) { // Child process
+printf("Child (PID: %d) exiting immediately.\n", getpid()); exit(0);
+}
+else { // Parent process
+printf("Parent (PID: %d) sleeping for 20 seconds...\n", getpid()); sleep(20);
+wait(NULL); // Clean up zombie printf("Parent done sleeping.\n");
+}
+}
+// Function to demonstrate orphan state void demonstrate_orphan() {
+printf("\nOrphan state demonstration:\n");
+printf("Child process will sleep for 20 seconds after parent exits.\n"); 
+printf("The child will be adopted by init process (PID 1).\n");
+
+pid_t pid = fork(); if(pid < 0) {
+fprintf(stderr, "Fork failed\n"); exit(1);
+}
+else if(pid == 0) { // Child process
+printf("Child (PID: %d) sleeping for 20 seconds...\n", getpid()); sleep(20);
+printf("Child done sleeping. Now an orphan adopted by init.\n"); exit(0);
+}
+else { // Parent process
+printf("Parent (PID: %d) exiting immediately.\n", getpid()); exit(0);
+}
+}
